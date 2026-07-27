@@ -22,6 +22,13 @@ h1{font-family:var(--head);font-size:26px;font-weight:700;margin:0 0 2px}
 .summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13px}
 .stat b{font-size:16px;font-weight:600;margin-right:4px}
+.stat[data-showdone]{cursor:pointer}
+.stat.on{background:var(--blue-bg);border-color:#d3d2ce}
+.stat[data-showdone]:hover{background:#eef1f5;border-color:#c7ccd1}
+.statgo{display:inline-block;margin-left:6px;font-size:11px;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+.statgo.on2{color:var(--blue);border-color:#bcd3ff;background:#fff}
+.modeban{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+.modeban span{color:var(--blue);cursor:pointer;font-weight:600}
 .addrow{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .addrow input{flex:1;min-width:180px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-size:14px;background:var(--card)}
 select{padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px;background:var(--card);color:var(--ink)}
@@ -35,6 +42,8 @@ select{padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-si
 .tasklinks .lk{display:inline-flex;align-items:center;gap:7px;max-width:300px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:4px 11px;color:var(--blue);text-decoration:none}
 .tasklinks .lktext{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:230px}
 .tasklinks .lk .x{color:var(--muted);cursor:pointer;font-size:11px}
+.tasklinks .lk .e{color:var(--muted);cursor:pointer;font-size:11px}
+.draghandle{cursor:grab}
 .tasklinks .addlk{align-self:flex-start;border:1px dashed var(--line);border-radius:20px;padding:4px 11px;cursor:pointer;color:var(--muted);background:none;font-size:12px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:16px 18px;margin-bottom:10px}
 .card.done-all{opacity:.85}
@@ -136,8 +145,7 @@ dialog input[type=date],dialog input[type=text],dialog input[type=number]{paddin
 
   <div id="active"></div>
 
-  <div class="section-t" id="archToggle">▸ 완료 아카이브 (<span id="archCount">0</span>)</div>
-  <div id="archive" style="display:none"></div>
+
 
   <div class="toolbar">
     <button class="btn2 primary" id="weekBtn">📅 주간보고</button>
@@ -196,7 +204,7 @@ dialog input[type=date],dialog input[type=text],dialog input[type=number]{paddin
 </div></dialog>
 
 <dialog id="linkDlg"><div class="dwrap">
-  <h3>링크 추가</h3>
+  <h3 id="linkDlgTitle">링크 추가</h3>
   <div class="dhint" id="linkFor"></div>
   <label class="fld">종류</label>
   <select id="linkType" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:14px;margin-bottom:8px"><option>디자인</option><option>마크업</option><option>개발</option><option>기타</option></select>
@@ -304,21 +312,21 @@ function renderFilters(){
   document.getElementById('catEditPill').onclick=openCatDlg;
 }
 function render(){
-  let active=data.filter(t=>!allDone(t));
-  if(filter!=='전체')active=active.filter(t=>t.cat===filter);
+  const activeAll=data.filter(t=>!allDone(t));
   const arch=data.filter(t=>allDone(t));
   let doing=0,todo=0;
-  data.filter(t=>!allDone(t)).forEach(t=>TRACKS.forEach(([k])=>{const v=t.s[k];if(v==='doing')doing++;else if(v==='todo')todo++;}));
+  activeAll.forEach(t=>TRACKS.forEach(([k])=>{const v=t.s[k];if(v==='doing')doing++;else if(v==='todo')todo++;}));
   document.getElementById('summary').innerHTML=
-    `<div class="stat"><b>${data.filter(t=>!allDone(t)).length}</b>진행 중 업무</div>`+
+    `<div class="stat ${showDone?'':'on'}" data-showdone="0"><b>${activeAll.length}</b>진행 중 업무</div>`+
     `<div class="stat"><b>${doing}</b>진행 트랙</div>`+
     `<div class="stat"><b>${todo}</b>예정 트랙</div>`+
-    `<div class="stat"><b>${arch.length}</b>완료 업무</div>`;
+    `<div class="stat ${showDone?'on':''}" data-showdone="1"><b>${arch.length}</b>완료 업무${showDone?'<span class="statgo on2">보는 중</span>':'<span class="statgo">보기</span>'}</div>`;
   renderFilters();
+  let list=showDone?arch:activeAll;
+  if(filter!=='전체')list=list.filter(t=>t.cat===filter);
   const av=document.getElementById('active');
-  av.innerHTML=active.length?active.map(t=>cardHtml(t,false)).join(''):`<div class="empty">${filter==='전체'?'진행 중인 업무가 없어요. 위에서 새 업무를 추가해보세요.':`'${filter}' 카테고리에 진행 중 업무가 없어요.`}</div>`;
-  document.getElementById('archCount').textContent=arch.length;
-  document.getElementById('archive').innerHTML=arch.map(t=>cardHtml(t,true)).join('');
+  const emptyMsg=showDone?'완료된 업무가 없어요.':(filter==='전체'?'진행 중인 업무가 없어요. 위에서 새 업무를 추가해보세요.':`'${filter}' 카테고리에 진행 중 업무가 없어요.`);
+  av.innerHTML=(showDone?`<div class="modeban">✅ 완료 업무 보는 중 · <span id="backActive">진행 중 보기</span></div>`:'')+(list.length?list.map(t=>cardHtml(t,showDone)).join(''):`<div class="empty">${emptyMsg}</div>`);
   bind();save();
 }
 function periodText(i){
@@ -341,14 +349,14 @@ function trackCell(t,k,n,num){
 }
 function shortUrl(u){try{const x=new URL(u);let sv=x.hostname.replace(/^www\./,'')+x.pathname;if(sv.length>28)sv=sv.slice(0,28)+'\u2026';return sv;}catch(e){return u.length>28?u.slice(0,28)+'\u2026':u;}}
 const LINK_TYPES=['디자인','마크업','개발','기타'];
-function taskLinksHtml(t){const links=t.links||[];let out='';LINK_TYPES.forEach(tp=>{const arr=links.map((l,idx)=>({l,idx})).filter(o=>(o.l.type||'기타')===tp);if(!arr.length)return;out+='<div class="lkgroup"><span class="lktag">'+tp+'</span>'+arr.map(o=>'<a class="lk" href="'+esc(o.l.url)+'" target="_blank" rel="noopener" title="'+esc(o.l.url)+'"><span class="lktext">'+esc(o.l.label||shortUrl(o.l.url))+'</span><span class="x" data-lkdel="'+t.id+':'+o.idx+'" title="삭제">\u2715</span></a>').join('')+'</div>';});return '<div class="tasklinks">'+out+'<button class="addlk" data-lkadd="'+t.id+'">\uFF0B 링크</button></div>';}
+function taskLinksHtml(t){const links=t.links||[];let out='';LINK_TYPES.forEach(tp=>{const arr=links.map((l,idx)=>({l,idx})).filter(o=>(o.l.type||'기타')===tp);if(!arr.length)return;out+='<div class="lkgroup"><span class="lktag">'+tp+'</span>'+arr.map(o=>'<a class="lk" href="'+esc(o.l.url)+'" target="_blank" rel="noopener" title="'+esc(o.l.url)+'"><span class="lktext">'+esc(o.l.label||shortUrl(o.l.url))+'</span><span class="e" data-lkedit="'+t.id+':'+o.idx+'" title="수정">\u270E</span><span class="x" data-lkdel="'+t.id+':'+o.idx+'" title="삭제">\u2715</span></a>').join('')+'</div>';});return '<div class="tasklinks">'+out+'<button class="addlk" data-lkadd="'+t.id+'">\uFF0B 링크</button></div>';}
 function cardHtml(t,isArch){
   let period='';
   if(isArch){const dur=days(t.createdAt,t.doneAt);period=`<div class="meta">${t.createdAt?fmtDate(t.createdAt):'?'} ~ ${t.doneAt?fmtDate(t.doneAt):'?'}${dur!=null?` · ${dur}일`:''} · 담당 ${doneTracks(t).join('·')||'-'}</div>`;}
   let note;if(editNote===t.id){note=`<textarea class="noteedit" data-noteedit="${t.id}" placeholder="성과 메모">${esc(t.note||'')}</textarea>`;}else if(t.note){note=`<div class="note" data-noteclick="${t.id}" style="cursor:text">${esc(t.note)}</div>`;}else{note=`<div class="note empty-note" data-noteclick="${t.id}" style="cursor:text">메모 없음 — 클릭해서 추가</div>`;}
-  return `<div class="card ${isArch?'done-all':''}" data-id="${t.id}" ${isArch?'':'draggable="true"'}>
+  return `<div class="card ${isArch?'done-all':''}" data-id="${t.id}">
     <div class="chead"><div><div class="titleline"><span class="title">${esc(t.title)}</span><span class="chip">${esc(t.cat)}</span></div>${t.meta?`<div class="meta">${esc(t.meta)}</div>`:''}${period}</div>
-    <div class="acts"><button class="iconbtn" data-dup="${t.id}" title="복제">⧉</button><button class="iconbtn" data-note="${t.id}" title="기간·특이사항·메모 수정">✎</button><button class="iconbtn del" data-del="${t.id}" title="삭제">✕</button></div></div>
+    <div class="acts">${isArch?'':`<span class="iconbtn draghandle" data-drag="${t.id}" draggable="true" title="드래그로 순서 변경">⠿</span>`}<button class="iconbtn" data-dup="${t.id}" title="복제">⧉</button><button class="iconbtn" data-note="${t.id}" title="기간·특이사항·메모 수정">✎</button><button class="iconbtn del" data-del="${t.id}" title="삭제">✕</button></div></div>
     <div class="prog"><div class="progbar"><div class="progfill" style="width:${progress(t)}%${progress(t)===100?';background:var(--done-ink)':''}"></div></div><span class="progpct">${progress(t)}%</span></div>
     <div class="tracks">${TRACKS.map(([k,n],i)=>trackCell(t,k,n,i+1)).join('')}</div>
     ${t.check?`<div class="needcheck"><b>확인 필요</b> · ${esc(t.check)}</div>`:''}
@@ -384,20 +392,19 @@ function bind(){
   });
   document.querySelectorAll('[data-note]').forEach(el=>el.onclick=()=>openNote(el.dataset.note));
   document.querySelectorAll('[data-editrow]').forEach(el=>el.onclick=()=>{editTrack=el.dataset.editrow;render();});
+  document.querySelectorAll('[data-showdone]').forEach(el=>el.onclick=()=>{showDone=el.dataset.showdone==='1';render();});
+  const _ba=document.getElementById('backActive');if(_ba)_ba.onclick=()=>{showDone=false;render();};
   document.querySelectorAll('[data-noteclick]').forEach(el=>el.onclick=()=>{editNote=el.dataset.noteclick;render();});
   if(editTrack){const a=editTrack.split(':');const t=data.find(x=>x.id==a[0]);const k=a[1];const S=document.querySelector('.ie-start'),D=document.querySelector('.ie-done'),N=document.querySelector('.ie-note');if(t){if(S)S.onchange=()=>{t.ti[k].start=S.value||null;save();};if(D)D.onchange=()=>{t.ti[k].done=D.value||null;save();};if(N){N.onchange=()=>{t.ti[k].note=N.value.trim();save();};N.onkeydown=e=>{if(e.key==='Enter'){t.ti[k].note=N.value.trim();editTrack=null;render();}};}const b=document.querySelector('[data-iedone]');if(b)b.onclick=()=>{if(S)t.ti[k].start=S.value||null;if(D)t.ti[k].done=D.value||null;if(N)t.ti[k].note=N.value.trim();log('설정수정',t.title,'인라인 편집');editTrack=null;render();};if(S)setTimeout(()=>S.focus(),0);}}
   const _nta=document.querySelector('[data-noteedit]');if(_nta){_nta.focus();_nta.onblur=()=>{const t=data.find(x=>x.id==_nta.dataset.noteedit);if(t)t.note=_nta.value.trim();editNote=null;render();};}
   document.querySelectorAll('[data-dup]').forEach(el=>el.onclick=()=>dupTask(el.dataset.dup));
   document.querySelectorAll('[data-lkadd]').forEach(el=>el.onclick=()=>openTaskLink(el.dataset.lkadd));
+  document.querySelectorAll('[data-lkedit]').forEach(el=>el.onclick=e=>{e.preventDefault();e.stopPropagation();const a=el.dataset.lkedit.split(':');editTaskLink(a[0],+a[1]);});
   document.querySelectorAll('[data-lkdel]').forEach(el=>el.onclick=e=>{e.preventDefault();e.stopPropagation();const a=el.dataset.lkdel.split(':');const t=data.find(x=>x.id==a[0]);if(t&&t.links){t.links.splice(+a[1],1);render();}});
-  document.querySelectorAll('.card[draggable]').forEach(el=>{
-    el.ondragstart=e=>{dragId=el.dataset.id;el.style.opacity='.4';e.dataTransfer.effectAllowed='move';};
-    el.ondragend=()=>{el.style.opacity='';};
-    el.ondragover=e=>{e.preventDefault();e.dataTransfer.dropEffect='move';};
-    el.ondrop=e=>{e.preventDefault();reorder(dragId,el.dataset.id);};
-  });
+  document.querySelectorAll('.draghandle').forEach(el=>{el.ondragstart=e=>{dragId=el.dataset.drag;e.dataTransfer.effectAllowed='move';};el.ondragend=()=>{dragId=null;};});
+  document.querySelectorAll('#active .card').forEach(el=>{el.ondragover=e=>{if(dragId)e.preventDefault();};el.ondrop=e=>{e.preventDefault();if(dragId)reorder(dragId,el.dataset.id);};});
 }
-let dragId=null;let editTrack=null;let editNote=null;
+let dragId=null;let editTrack=null;let editNote=null;let showDone=false;
 function dupTask(id){
   const t=data.find(x=>x.id==id);if(!t)return;
   const copy={id:Date.now(),title:t.title+' (복제)',cat:t.cat,meta:t.meta,s:Object.fromEntries(TRACKS.map(([k])=>[k,'todo'])),on:Object.assign(Object.fromEntries(TRACKS.map(([k])=>[k,true])),t.on||{}),ti:emptyTi(),createdAt:nowISO(),doneAt:null,note:'',check:t.check||''};
@@ -454,11 +461,7 @@ function add(){
   data.unshift({id:Date.now(),title:v,cat:c,meta:'',s:Object.fromEntries(TRACKS.map(([k])=>[k,'todo'])),on:Object.fromEntries(TRACKS.map(([k])=>[k,true])),ti:emptyTi(),createdAt:nowISO(),doneAt:null,note:'',check:''});
   log('추가',v,c);i.value='';render();
 }
-document.getElementById('archToggle').onclick=()=>{
-  const a=document.getElementById('archive');const open=a.style.display!=='none';
-  a.style.display=open?'none':'block';
-  document.getElementById('archToggle').firstChild.textContent=(open?'▸':'▾')+' 완료 아카이브 (';
-};
+
 document.getElementById('resetBtn').onclick=()=>{if(confirm('보드를 기본값으로 초기화할까요? (히스토리는 유지됩니다)')){data=freshSeed();log('초기화','보드','기본값 복원');render();}};
 
 function catRowHtml(c){return `<div class="catrow" data-orig="${esc(c)}" style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><input type="text" value="${esc(c)}" style="flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:8px"><button type="button" class="iconbtn del catdel" title="삭제">✕</button></div>`;}
@@ -604,9 +607,10 @@ document.getElementById('hCopy').onclick=()=>copy(hist.map(h=>`${fmtTime(h.ts)}\
 document.getElementById('hClear').onclick=()=>{if(confirm('히스토리 기록을 모두 비울까요?')){hist=[];saveH();document.getElementById('histBtn').click();}};
 document.getElementById('renameSave').onclick=doRename;
 document.getElementById('renameInput').addEventListener('keydown',e=>{if(e.key==='Enter')doRename();});
-let pendingLinkTask=null;
-function openTaskLink(id){pendingLinkTask=id;const t=data.find(x=>x.id==id);document.getElementById('linkFor').textContent=(t?t.title:'')+' 에 링크 추가';document.getElementById('linkType').value='디자인';document.getElementById('linkLabel').value='';document.getElementById('linkUrl').value='';document.getElementById('linkDlg').showModal();setTimeout(()=>document.getElementById('linkUrl').focus(),30);}
-document.getElementById('linkSave').onclick=()=>{let u=document.getElementById('linkUrl').value.trim();if(!u){alert('URL을 입력해주세요.');return;}if(!/^https?:\/\//i.test(u))u='https://'+u;const lb=document.getElementById('linkLabel').value.trim();const t=data.find(x=>x.id==pendingLinkTask);if(!t){document.getElementById('linkDlg').close();return;}if(!Array.isArray(t.links))t.links=[];t.links.push({label:lb,url:u,type:document.getElementById('linkType').value});log('링크추가',t.title,lb);document.getElementById('linkDlg').close();render();};
+let pendingLinkTask=null;let pendingLinkIdx=null;
+function openTaskLink(id){pendingLinkTask=id;pendingLinkIdx=null;const t=data.find(x=>x.id==id);document.getElementById('linkDlgTitle').textContent='링크 추가';document.getElementById('linkSave').textContent='추가';document.getElementById('linkFor').textContent=(t?t.title:'')+' 에 링크 추가';document.getElementById('linkType').value='디자인';document.getElementById('linkLabel').value='';document.getElementById('linkUrl').value='';document.getElementById('linkDlg').showModal();setTimeout(()=>document.getElementById('linkUrl').focus(),30);}
+function editTaskLink(id,idx){pendingLinkTask=id;pendingLinkIdx=idx;const t=data.find(x=>x.id==id);const l=t&&t.links?t.links[idx]:null;if(!l)return;document.getElementById('linkDlgTitle').textContent='링크 수정';document.getElementById('linkSave').textContent='저장';document.getElementById('linkFor').textContent=(t?t.title:'')+' 링크 수정';document.getElementById('linkType').value=l.type||'기타';document.getElementById('linkLabel').value=l.label||'';document.getElementById('linkUrl').value=l.url||'';document.getElementById('linkDlg').showModal();setTimeout(()=>document.getElementById('linkLabel').focus(),30);}
+document.getElementById('linkSave').onclick=()=>{let u=document.getElementById('linkUrl').value.trim();if(!u){alert('URL을 입력해주세요.');return;}if(!/^https?:\/\//i.test(u))u='https://'+u;const lb=document.getElementById('linkLabel').value.trim();const t=data.find(x=>x.id==pendingLinkTask);if(!t){document.getElementById('linkDlg').close();return;}if(!Array.isArray(t.links))t.links=[];const obj={label:lb,url:u,type:document.getElementById('linkType').value};if(pendingLinkIdx!=null&&t.links[pendingLinkIdx]){t.links[pendingLinkIdx]=obj;log('링크수정',t.title,lb||u);}else{t.links.push(obj);log('링크추가',t.title,lb||u);}document.getElementById('linkDlg').close();render();};
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
 
 function copy(text,btnId){const b=document.getElementById(btnId);navigator.clipboard.writeText(text).then(()=>{const o=b.textContent;b.textContent='복사됨!';setTimeout(()=>b.textContent=o,1200);});}
