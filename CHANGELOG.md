@@ -7,6 +7,12 @@
 ## [Unreleased]
 - (다음 릴리즈에 넣을 변경을 여기 기록)
 
+## [1.2.0] - 2026-07-27
+### 추가 (Added)
+- **업무별 링크** — 각 업무 카드에 지라·기획서·테스트 페이지 등 하이퍼링크를 추가/열기/삭제. 링크를 **종류(디자인·마크업·개발·기타)별로 묶어** 표시해 요청 건을 따로 확인
+- **주간보고에 링크 포함** — 링크 종류에 맞춰 해당 트랙 줄(기타는 업무 제목) 옆에 URL 자동 첨부
+- **인라인 편집** — 카드에서 기간·특이사항·메모를 클릭해 그 자리에서 바로 수정(연필 버튼 없이도)
+
 ## [1.1.1] - 2026-07-27
 ### 변경 (Changed)
 - 검수 단계 명칭 변경: 디자인검수①/② → **마크업 필터링 / 개발 필터링**
@@ -38,7 +44,8 @@
 - 디자인: 노션 스타일, Pretendard 글꼴, 진행률 링 파비콘
 - 데이터는 브라우저(localStorage)에 저장 — 공개 배포해도 업무 내용은 비공개
 
-[Unreleased]: https://github.com/yoonji-prog/task-board/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/yoonji-prog/task-board/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/yoonji-prog/task-board/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/yoonji-prog/task-board/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/yoonji-prog/task-board/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/yoonji-prog/task-board/releases/tag/v1.0.0
