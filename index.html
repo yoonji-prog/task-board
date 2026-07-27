@@ -32,7 +32,8 @@ select{padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-si
 .tasklinks{display:flex;flex-direction:column;gap:6px;margin-top:10px;font-size:12px}
 .lkgroup{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .lktag{flex:none;min-width:44px;font-size:11px;font-weight:600;color:var(--muted)}
-.tasklinks .lk{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:4px 11px;color:var(--blue);text-decoration:none}
+.tasklinks .lk{display:inline-flex;align-items:center;gap:7px;max-width:300px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:4px 11px;color:var(--blue);text-decoration:none}
+.tasklinks .lktext{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:230px}
 .tasklinks .lk .x{color:var(--muted);cursor:pointer;font-size:11px}
 .tasklinks .addlk{align-self:flex-start;border:1px dashed var(--line);border-radius:20px;padding:4px 11px;cursor:pointer;color:var(--muted);background:none;font-size:12px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:16px 18px;margin-bottom:10px}
@@ -338,8 +339,9 @@ function trackCell(t,k,n,num){
   if(editTrack===key)return `<div class="trackrow">${node}${name}${badge(st,t.id,k)}<span class="trow-detail"><span class="ierow"><input type="date" class="ie-start" value="${i.start||''}"><span style="color:var(--muted)">~</span><input type="date" class="ie-done" value="${i.done||''}"><input type="text" class="ie-note" value="${esc(i.note||'')}" placeholder="특이사항"><span class="iedone" data-iedone="${key}">저장</span></span></span></div>`;
   return `<div class="trackrow">${node}${name}${badge(st,t.id,k)}<span class="trow-detail" data-editrow="${key}" style="cursor:text" title="클릭해서 기간·특이사항 편집">${detail}</span></div>`;
 }
+function shortUrl(u){try{const x=new URL(u);let sv=x.hostname.replace(/^www\./,'')+x.pathname;if(sv.length>28)sv=sv.slice(0,28)+'\u2026';return sv;}catch(e){return u.length>28?u.slice(0,28)+'\u2026':u;}}
 const LINK_TYPES=['디자인','마크업','개발','기타'];
-function taskLinksHtml(t){const links=t.links||[];let out='';LINK_TYPES.forEach(tp=>{const arr=links.map((l,idx)=>({l,idx})).filter(o=>(o.l.type||'기타')===tp);if(!arr.length)return;out+='<div class="lkgroup"><span class="lktag">'+tp+'</span>'+arr.map(o=>'<a class="lk" href="'+esc(o.l.url)+'" target="_blank" rel="noopener">'+esc(o.l.label||o.l.url)+'<span class="x" data-lkdel="'+t.id+':'+o.idx+'" title="삭제">\u2715</span></a>').join('')+'</div>';});return '<div class="tasklinks">'+out+'<button class="addlk" data-lkadd="'+t.id+'">\uFF0B 링크</button></div>';}
+function taskLinksHtml(t){const links=t.links||[];let out='';LINK_TYPES.forEach(tp=>{const arr=links.map((l,idx)=>({l,idx})).filter(o=>(o.l.type||'기타')===tp);if(!arr.length)return;out+='<div class="lkgroup"><span class="lktag">'+tp+'</span>'+arr.map(o=>'<a class="lk" href="'+esc(o.l.url)+'" target="_blank" rel="noopener" title="'+esc(o.l.url)+'"><span class="lktext">'+esc(o.l.label||shortUrl(o.l.url))+'</span><span class="x" data-lkdel="'+t.id+':'+o.idx+'" title="삭제">\u2715</span></a>').join('')+'</div>';});return '<div class="tasklinks">'+out+'<button class="addlk" data-lkadd="'+t.id+'">\uFF0B 링크</button></div>';}
 function cardHtml(t,isArch){
   let period='';
   if(isArch){const dur=days(t.createdAt,t.doneAt);period=`<div class="meta">${t.createdAt?fmtDate(t.createdAt):'?'} ~ ${t.doneAt?fmtDate(t.doneAt):'?'}${dur!=null?` · ${dur}일`:''} · 담당 ${doneTracks(t).join('·')||'-'}</div>`;}
