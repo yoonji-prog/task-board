@@ -273,7 +273,7 @@ function emptyTi(){const o={};TRACKS.forEach(([k])=>{o[k]={start:null,done:null,
 const seed=[];
 let data=load(), hist=loadH(), editId=null, filter=localStorage.getItem(FKEY)||'전체';
 function load(){try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);d.forEach(migrate);return d;}}catch(e){}return freshSeed();}
-function migrate(t){if(!t.cat)t.cat='기타';if(!t.s)t.s={};TRACKS.forEach(([k])=>{if(!t.s[k])t.s[k]='todo';});if(!t.ti)t.ti={};TRACKS.forEach(([k])=>{const o=t.ti[k]||{};t.ti[k]={start:o.start||null,done:o.done||null,note:o.note||''};});if(t.check==null)t.check='';if(!t.on)t.on={};TRACKS.forEach(([k])=>{if(t.on[k]===undefined)t.on[k]=true;});if(!Array.isArray(t.links))t.links=[];t.links.forEach(l=>{if(!l.type)l.type='기타';});}
+function migrate(t){if(!t.cat)t.cat='기타';if(!t.s)t.s={};TRACKS.forEach(([k])=>{if(!t.s[k])t.s[k]='todo';});if(!t.ti)t.ti={};TRACKS.forEach(([k])=>{const o=t.ti[k]||{};t.ti[k]={start:o.start||null,done:o.done||null,note:o.note||''};});if(t.check==null)t.check='';if(!t.on)t.on={};TRACKS.forEach(([k])=>{if(t.on[k]===undefined)t.on[k]=true;});if(!Array.isArray(t.links))t.links=[];t.links.forEach(l=>{if(!l.type)l.type='기타';if(l.label&&l.label===l.url)l.label='';});}
 function freshSeed(){const d=JSON.parse(JSON.stringify(seed));d.forEach(migrate);return d;}
 function loadH(){try{const r=localStorage.getItem(HKEY);if(r)return JSON.parse(r);}catch(e){}return [];}
 function save(){localStorage.setItem(KEY,JSON.stringify(data));}
@@ -537,32 +537,38 @@ function includeInWeek(t,s,e){
   if(!allDone(t))return true;
   const kd=taskKeyDate(t);return kd&&kd>=s&&kd<=e;
 }
+let weekHtml='';
 function buildWeekly(s,e){
-  let out=`주간업무 (${fmtMD(s)}~${fmtMD(e)})\n\n`;
-  let any=false;
+  let text=`주간업무 (${fmtMD(s)}~${fmtMD(e)})\n\n`;
+  let html=`<div>주간업무 (${fmtMD(s)}~${fmtMD(e)})</div><div><br></div>`;
+  let any=false;const TT={design:'디자인',markup:'마크업',dev:'개발'};
   CATS.forEach(cat=>{
     const items=data.filter(t=>t.cat===cat&&includeInWeek(t,s,e));
     if(!items.length)return;any=true;
-    out+=`[${cat}]\n`;
+    text+=`[${cat}]\n`;html+=`<div><b>[${esc(cat)}]</b></div>`;
     items.forEach(t=>{
-      const lk=(t.links||[]);const lkByType=tp=>lk.filter(l=>(l.type||'기타')===tp).map(l=>l.label||shortUrl(l.url)).join(' ');const TT={design:'디자인',markup:'마크업',dev:'개발'};
-      const etc=lkByType('기타');
-      out+=`- ${overall(t)} : ${dateTag(taskKeyDate(t))}${t.title}${etc?' '+etc:''}\n`;
-      TRACKS.forEach(([k,n])=>{if(!isOn(t,k))return;const i=t.ti[k]||{};const td=i.done||i.start;const tl=TT[k]?lkByType(TT[k]):'';
-        if(t.s[k]!=='todo'||i.note||td||tl){
-          out+=`  ↳ ${LABEL[t.s[k]]} : ${dateTag(td)}${n}${i.note?' · '+i.note:''}${tl?' '+tl:''}\n`;
+      const lk=(t.links||[]);const byType=tp=>lk.filter(l=>(l.type||'기타')===tp);
+      const lT=arr=>arr.map(l=>l.label?l.label+' '+l.url:l.url).join(' ');
+      const lH=arr=>arr.map(l=>`<a href="${esc(l.url)}">${esc(l.label||l.url)}</a>`).join(' ');
+      const et=byType('기타');const etT=lT(et),etH=lH(et);
+      text+=`- ${overall(t)} : ${dateTag(taskKeyDate(t))}${t.title}${etT?' '+etT:''}\n`;
+      html+=`<div>- ${overall(t)} : ${dateTag(taskKeyDate(t))}${esc(t.title)}${etH?' '+etH:''}</div>`;
+      TRACKS.forEach(([k,n])=>{if(!isOn(t,k))return;const i=t.ti[k]||{};const td=i.done||i.start;const ar=TT[k]?byType(TT[k]):[];const tt=lT(ar),th=lH(ar);
+        if(t.s[k]!=='todo'||i.note||td||tt){
+          text+=`  ↳ ${LABEL[t.s[k]]} : ${dateTag(td)}${n}${i.note?' · '+i.note:''}${tt?' '+tt:''}\n`;
+          html+=`<div>&nbsp;&nbsp;↳ ${LABEL[t.s[k]]} : ${dateTag(td)}${esc(n)}${i.note?' · '+esc(i.note):''}${th?' '+th:''}</div>`;
         }});
-      if(t.check)t.check.split(/\n+/).map(x=>x.trim()).filter(Boolean).forEach(line=>{out+=`  ↳ 확인 필요 : ${line}\n`;});
+      if(t.check)t.check.split(/\n+/).map(x=>x.trim()).filter(Boolean).forEach(line=>{text+=`  ↳ 확인 필요 : ${line}\n`;html+=`<div>&nbsp;&nbsp;↳ 확인 필요 : ${esc(line)}</div>`;});
     });
-    out+='\n';
+    text+='\n';html+='<div><br></div>';
   });
-  if(!any)out+='(해당 주간에 표시할 업무가 없어요)\n';
-  return out;
+  if(!any){text+='(해당 주간에 표시할 업무가 없어요)\n';html+='<div>(해당 주간에 표시할 업무가 없어요)</div>';}
+  return {text,html};
 }
 function genWeek(){
   const s=document.getElementById('weekStart').value,e=document.getElementById('weekEnd').value;
   if(!s||!e){alert('기간을 선택해주세요.');return;}
-  document.getElementById('weekText').value=buildWeekly(s,e);
+  const r=buildWeekly(s,e);document.getElementById('weekText').value=r.text;weekHtml=r.html;
 }
 document.getElementById('weekBtn').onclick=()=>{
   const mon=mondayOf(today());
@@ -572,7 +578,7 @@ document.getElementById('weekBtn').onclick=()=>{
   document.getElementById('weekDlg').showModal();
 };
 document.getElementById('weekGen').onclick=genWeek;
-document.getElementById('weekCopy').onclick=()=>copy(document.getElementById('weekText').value,'weekCopy');
+document.getElementById('weekCopy').onclick=()=>{const b=document.getElementById('weekCopy');const text=document.getElementById('weekText').value;const done=()=>{const o=b.textContent;b.textContent='복사됨!';setTimeout(()=>b.textContent=o,1200);};try{if(navigator.clipboard&&window.ClipboardItem){navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([weekHtml||text],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]).then(done,()=>navigator.clipboard.writeText(text).then(done));}else{navigator.clipboard.writeText(text).then(done);}}catch(e){navigator.clipboard.writeText(text).then(done);}};
 document.getElementById('weekDl').onclick=()=>download('주간보고_'+(document.getElementById('weekStart').value||today())+'.txt',document.getElementById('weekText').value,'text/plain');
 
 document.getElementById('digestBtn').onclick=()=>{
@@ -600,7 +606,7 @@ document.getElementById('renameSave').onclick=doRename;
 document.getElementById('renameInput').addEventListener('keydown',e=>{if(e.key==='Enter')doRename();});
 let pendingLinkTask=null;
 function openTaskLink(id){pendingLinkTask=id;const t=data.find(x=>x.id==id);document.getElementById('linkFor').textContent=(t?t.title:'')+' 에 링크 추가';document.getElementById('linkType').value='디자인';document.getElementById('linkLabel').value='';document.getElementById('linkUrl').value='';document.getElementById('linkDlg').showModal();setTimeout(()=>document.getElementById('linkUrl').focus(),30);}
-document.getElementById('linkSave').onclick=()=>{let u=document.getElementById('linkUrl').value.trim();if(!u){alert('URL을 입력해주세요.');return;}if(!/^https?:\/\//i.test(u))u='https://'+u;const lb=document.getElementById('linkLabel').value.trim()||u;const t=data.find(x=>x.id==pendingLinkTask);if(!t){document.getElementById('linkDlg').close();return;}if(!Array.isArray(t.links))t.links=[];t.links.push({label:lb,url:u,type:document.getElementById('linkType').value});log('링크추가',t.title,lb);document.getElementById('linkDlg').close();render();};
+document.getElementById('linkSave').onclick=()=>{let u=document.getElementById('linkUrl').value.trim();if(!u){alert('URL을 입력해주세요.');return;}if(!/^https?:\/\//i.test(u))u='https://'+u;const lb=document.getElementById('linkLabel').value.trim();const t=data.find(x=>x.id==pendingLinkTask);if(!t){document.getElementById('linkDlg').close();return;}if(!Array.isArray(t.links))t.links=[];t.links.push({label:lb,url:u,type:document.getElementById('linkType').value});log('링크추가',t.title,lb);document.getElementById('linkDlg').close();render();};
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
 
 function copy(text,btnId){const b=document.getElementById(btnId);navigator.clipboard.writeText(text).then(()=>{const o=b.textContent;b.textContent='복사됨!';setTimeout(()=>b.textContent=o,1200);});}
