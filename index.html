@@ -545,7 +545,7 @@ function buildWeekly(s,e){
     if(!items.length)return;any=true;
     out+=`[${cat}]\n`;
     items.forEach(t=>{
-      const lk=(t.links||[]);const lkByType=tp=>lk.filter(l=>(l.type||'기타')===tp).map(l=>l.url).join(' ');const TT={design:'디자인',markup:'마크업',dev:'개발'};
+      const lk=(t.links||[]);const lkByType=tp=>lk.filter(l=>(l.type||'기타')===tp).map(l=>l.label||shortUrl(l.url)).join(' ');const TT={design:'디자인',markup:'마크업',dev:'개발'};
       const etc=lkByType('기타');
       out+=`- ${overall(t)} : ${dateTag(taskKeyDate(t))}${t.title}${etc?' '+etc:''}\n`;
       TRACKS.forEach(([k,n])=>{if(!isOn(t,k))return;const i=t.ti[k]||{};const td=i.done||i.start;const tl=TT[k]?lkByType(TT[k]):'';
