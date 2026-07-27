@@ -98,7 +98,7 @@ dialog input[type=date],dialog input[type=text],dialog input[type=number]{paddin
 <body>
 <div class="wrap">
   <h1>업무 트래커</h1>
-  <div class="sub">업무별 <b>디자인 · 마크업 · 개발</b> 상태와 <b>트랙별 기간(시작~완료) · 특이사항</b> 관리 · 완료 시 아카이브 이동 · 카테고리 필터, 메모·이력, 내보내기·백업/복원 지원.</div>
+  <div class="sub">업무별 <b>디자인 → 마크업 → 검수 → 개발 → 검수</b> 단계와 <b>기간(시작~완료) · 특이사항</b> 관리 · 완료 시 아카이브 이동 · 카테고리 필터, 메모·이력, 내보내기·백업/복원 지원.</div>
 
   <div class="summary" id="summary"></div>
 
@@ -172,6 +172,12 @@ dialog input[type=date],dialog input[type=text],dialog input[type=number]{paddin
   </div>
 </div></dialog>
 
+<dialog id="renameDlg"><div class="dwrap">
+  <h3>카테고리 이름 변경</h3>
+  <input type="text" id="renameInput" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:14px">
+  <div class="drow"><button class="btn2 primary" id="renameSave">저장</button><button class="btn2" data-close>취소</button></div>
+</div></dialog>
+
 <dialog id="catDlg"><div class="dwrap">
   <h3>카테고리 편집</h3>
   <div class="dhint">이름을 바꾸면 해당 카테고리의 업무도 함께 바뀌고, 삭제하면 그 업무는 '기타'(없으면 마지막 항목)로 이동해요.</div>
@@ -220,18 +226,19 @@ dialog input[type=date],dialog input[type=text],dialog input[type=number]{paddin
 
 <script>
 const KEY='dm_task_board_v2', HKEY='dm_task_history_v1', FKEY='dm_task_filter_v1', CKEY='dm_task_cats_v1';
-const TRACKS=[['design','디자인'],['markup','마크업'],['dev','개발']];
+const TRACKS=[['design','디자인'],['markup','마크업'],['review1','디자인검수①'],['dev','개발'],['review2','디자인검수②']];
 const DEFAULT_CATS=['업무 카테고리 A','업무 카테고리 B','공통','기타'];
 function loadCats(){try{const r=localStorage.getItem(CKEY);if(r){const a=JSON.parse(r);if(Array.isArray(a)&&a.length)return a;}}catch(e){}return DEFAULT_CATS.slice();}
 function saveCats(){localStorage.setItem(CKEY,JSON.stringify(CATS));}
 let CATS=loadCats();
 const CYCLE=['todo','doing','done'];
 const LABEL={todo:'예정',doing:'진행',done:'완료'};
-function emptyTi(){return {design:{start:null,done:null,note:''},markup:{start:null,done:null,note:''},dev:{start:null,done:null,note:''}};}
+function emptyTi(){const o={};TRACKS.forEach(([k])=>{o[k]={start:null,done:null,note:''};});return o;}
 const seed=[];
 let data=load(), hist=loadH(), editId=null, filter=localStorage.getItem(FKEY)||'전체';
-function load(){try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);d.forEach(migrate);return d;}}catch(e){}return JSON.parse(JSON.stringify(seed));}
-function migrate(t){if(!t.cat)t.cat='기타';if(!t.s)t.s={design:'todo',markup:'todo',dev:'todo'};if(!t.ti)t.ti=emptyTi();TRACKS.forEach(([k])=>{const o=t.ti[k]||{};t.ti[k]={start:o.start||null,done:o.done||null,note:o.note||''};});if(t.check==null)t.check='';if(!t.on)t.on={design:true,markup:true,dev:true};else TRACKS.forEach(([k])=>{if(t.on[k]===undefined)t.on[k]=true;});}
+function load(){try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);d.forEach(migrate);return d;}}catch(e){}return freshSeed();}
+function migrate(t){if(!t.cat)t.cat='기타';if(!t.s)t.s={};TRACKS.forEach(([k])=>{if(!t.s[k])t.s[k]='todo';});if(!t.ti)t.ti={};TRACKS.forEach(([k])=>{const o=t.ti[k]||{};t.ti[k]={start:o.start||null,done:o.done||null,note:o.note||''};});if(t.check==null)t.check='';if(!t.on)t.on={};TRACKS.forEach(([k])=>{if(t.on[k]===undefined)t.on[k]=true;});}
+function freshSeed(){const d=JSON.parse(JSON.stringify(seed));d.forEach(migrate);return d;}
 function loadH(){try{const r=localStorage.getItem(HKEY);if(r)return JSON.parse(r);}catch(e){}return [];}
 function save(){localStorage.setItem(KEY,JSON.stringify(data));}
 function saveH(){localStorage.setItem(HKEY,JSON.stringify(hist.slice(-1000)));}
@@ -345,7 +352,7 @@ function bind(){
 let dragId=null;
 function dupTask(id){
   const t=data.find(x=>x.id==id);if(!t)return;
-  const copy={id:Date.now(),title:t.title+' (복제)',cat:t.cat,meta:t.meta,s:{design:'todo',markup:'todo',dev:'todo'},on:Object.assign({design:true,markup:true,dev:true},t.on||{}),ti:emptyTi(),createdAt:nowISO(),doneAt:null,note:'',check:t.check||''};
+  const copy={id:Date.now(),title:t.title+' (복제)',cat:t.cat,meta:t.meta,s:Object.fromEntries(TRACKS.map(([k])=>[k,'todo'])),on:Object.assign(Object.fromEntries(TRACKS.map(([k])=>[k,true])),t.on||{}),ti:emptyTi(),createdAt:nowISO(),doneAt:null,note:'',check:t.check||''};
   const idx=data.findIndex(x=>x.id==id);data.splice(idx,0,copy);
   log('복제',copy.title,'');render();
 }
@@ -396,7 +403,7 @@ function add(){
   const m=v.match(/#(\S+)/);
   if(m){const tag=m[1].toLowerCase();const found=CATS.find(x=>x.toLowerCase()===tag)||CATS.find(x=>x.toLowerCase().startsWith(tag));if(found)c=found;v=v.replace(/#\S+/g,'').trim();}
   if(!v){alert('업무명을 입력해주세요.');return;}
-  data.unshift({id:Date.now(),title:v,cat:c,meta:'',s:{design:'todo',markup:'todo',dev:'todo'},on:{design:true,markup:true,dev:true},ti:emptyTi(),createdAt:nowISO(),doneAt:null,note:'',check:''});
+  data.unshift({id:Date.now(),title:v,cat:c,meta:'',s:Object.fromEntries(TRACKS.map(([k])=>[k,'todo'])),on:Object.fromEntries(TRACKS.map(([k])=>[k,true])),ti:emptyTi(),createdAt:nowISO(),doneAt:null,note:'',check:''});
   log('추가',v,c);i.value='';render();
 }
 document.getElementById('archToggle').onclick=()=>{
@@ -404,11 +411,13 @@ document.getElementById('archToggle').onclick=()=>{
   a.style.display=open?'none':'block';
   document.getElementById('archToggle').firstChild.textContent=(open?'▸':'▾')+' 완료 아카이브 (';
 };
-document.getElementById('resetBtn').onclick=()=>{if(confirm('보드를 기본값으로 초기화할까요? (히스토리는 유지됩니다)')){data=JSON.parse(JSON.stringify(seed));log('초기화','보드','기본값 복원');render();}};
+document.getElementById('resetBtn').onclick=()=>{if(confirm('보드를 기본값으로 초기화할까요? (히스토리는 유지됩니다)')){data=freshSeed();log('초기화','보드','기본값 복원');render();}};
 
 function catRowHtml(c){return `<div class="catrow" data-orig="${esc(c)}" style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><input type="text" value="${esc(c)}" style="flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:8px"><button type="button" class="iconbtn del catdel" title="삭제">✕</button></div>`;}
 function openCatDlg(){document.getElementById('catRows').innerHTML=CATS.map(catRowHtml).join('');document.getElementById('catNew').value='';document.getElementById('catDlg').showModal();}
-function renameCat(old){const nn=prompt('카테고리 이름 변경',old);if(nn==null)return;const v=nn.trim();if(!v||v===old)return;if(CATS.includes(v)){alert('이미 있는 카테고리예요.');return;}const i=CATS.indexOf(old);if(i<0)return;CATS[i]=v;saveCats();data.forEach(t=>{if(t.cat===old)t.cat=v;});if(filter===old){filter=v;localStorage.setItem(FKEY,filter);}const cur=document.getElementById('newCat').value;fillSelect(document.getElementById('newCat'),cur===old?v:cur);log('카테고리이름변경',old+' → '+v,'');render();}
+let pendingRename=null;
+function renameCat(old){pendingRename=old;const inp=document.getElementById('renameInput');inp.value=old;document.getElementById('renameDlg').showModal();setTimeout(()=>inp.select(),30);}
+function doRename(){const old=pendingRename;const v=document.getElementById('renameInput').value.trim();const dlg=document.getElementById('renameDlg');if(!v||v===old){dlg.close();return;}if(CATS.includes(v)){alert('이미 있는 카테고리예요.');return;}const i=CATS.indexOf(old);if(i<0){dlg.close();return;}CATS[i]=v;saveCats();data.forEach(t=>{if(t.cat===old)t.cat=v;});if(filter===old){filter=v;localStorage.setItem(FKEY,filter);}const cur=document.getElementById('newCat').value;fillSelect(document.getElementById('newCat'),cur===old?v:cur);log('카테고리이름변경',old+' → '+v,'');dlg.close();render();}
 document.getElementById('catAdd').onclick=()=>{const v=document.getElementById('catNew').value.trim();if(!v)return;document.getElementById('catRows').insertAdjacentHTML('beforeend',catRowHtml(v).replace('data-orig="'+esc(v)+'"','data-orig=""'));document.getElementById('catNew').value='';};
 document.getElementById('catRows').onclick=e=>{if(e.target.classList.contains('catdel'))e.target.closest('.catrow').remove();};
 document.getElementById('catSave').onclick=()=>{
@@ -438,9 +447,9 @@ function buildMarkdown(){
   return md;
 }
 function buildCsv(){
-  const rows=[['업무','분류','전체시작','전체완료','기간(일)','디자인상태','디자인시작','디자인완료','디자인특이사항','마크업상태','마크업시작','마크업완료','마크업특이사항','개발상태','개발시작','개발완료','개발특이사항','상태','진행률','확인필요','메모']];
+  const head=['업무','분류','전체시작','전체완료','기간(일)'];TRACKS.forEach(([k,n])=>head.push(n+'상태',n+'시작',n+'완료',n+'특이사항'));head.push('상태','진행률','확인필요','메모');const rows=[head];
   data.forEach(t=>{const dur=days(t.createdAt,t.doneAt);const g=k=>isOn(t,k)?[LABEL[t.s[k]],t.ti[k].start?fmtDate(t.ti[k].start):'',t.ti[k].done?fmtDate(t.ti[k].done):'',t.ti[k].note||'']:['해당없음','','',''];
-    rows.push([t.title,t.cat,t.createdAt?fmtDate(t.createdAt):'',t.doneAt?fmtDate(t.doneAt):'',dur!=null?dur:'',...g('design'),...g('markup'),...g('dev'),allDone(t)?'완료':'진행',progress(t)+'%',t.check||'',t.note||'']);});
+    const row=[t.title,t.cat,t.createdAt?fmtDate(t.createdAt):'',t.doneAt?fmtDate(t.doneAt):'',dur!=null?dur:''];TRACKS.forEach(([k])=>row.push(...g(k)));row.push(allDone(t)?'완료':'진행',progress(t)+'%',t.check||'',t.note||'');rows.push(row);});
   return rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
 }
 function backupJson(){return JSON.stringify({app:'dm-task-board',v:2,exportedAt:nowISO(),data,hist},null,2);}
@@ -537,6 +546,8 @@ document.getElementById('histBtn').onclick=()=>{
 };
 document.getElementById('hCopy').onclick=()=>copy(hist.map(h=>`${fmtTime(h.ts)}\t${h.action}\t${h.title}${h.detail?'\t'+h.detail:''}`).join('\n'),'hCopy');
 document.getElementById('hClear').onclick=()=>{if(confirm('히스토리 기록을 모두 비울까요?')){hist=[];saveH();document.getElementById('histBtn').click();}};
+document.getElementById('renameSave').onclick=doRename;
+document.getElementById('renameInput').addEventListener('keydown',e=>{if(e.key==='Enter')doRename();});
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
 
 function copy(text,btnId){const b=document.getElementById(btnId);navigator.clipboard.writeText(text).then(()=>{const o=b.textContent;b.textContent='복사됨!';setTimeout(()=>b.textContent=o,1200);});}
