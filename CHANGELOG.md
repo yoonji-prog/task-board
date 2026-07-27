@@ -7,9 +7,14 @@
 ## [Unreleased]
 - (다음 릴리즈에 넣을 변경을 여기 기록)
 
+## [1.1.1] - 2026-07-27
+### 변경 (Changed)
+- 검수 단계 명칭 변경: 디자인검수①/② → **마크업 필터링 / 개발 필터링**
+- 트랙 표시를 **타임라인형 단계 리스트**로 개선 — 단계별 번호 노드와 세로 연결선으로 진행 상황을 위→아래로 한눈에
+
 ## [1.1.0] - 2026-07-27
 ### 추가 (Added)
-- **디자인 검수 단계 추가** — 프로세스를 5단계로 확장: 디자인 → 마크업 → 디자인검수① → 개발 → 디자인검수②
+- **디자인 검수 단계 추가** — 프로세스를 5단계로 확장: 디자인 → 마크업 → 마크업 필터링 → 개발 → 개발 필터링
 - 검수 단계도 상태·기간(시작~완료)·특이사항을 동일하게 관리, 진행률·주간보고·내보내기에 반영
 
 ### 변경 (Changed)
@@ -33,6 +38,7 @@
 - 디자인: 노션 스타일, Pretendard 글꼴, 진행률 링 파비콘
 - 데이터는 브라우저(localStorage)에 저장 — 공개 배포해도 업무 내용은 비공개
 
-[Unreleased]: https://github.com/yoonji-prog/task-board/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/yoonji-prog/task-board/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/yoonji-prog/task-board/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/yoonji-prog/task-board/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/yoonji-prog/task-board/releases/tag/v1.0.0
