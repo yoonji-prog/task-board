@@ -558,10 +558,10 @@ function buildWeekly(s,e){
       html+=`<div>- ${overall(t)} : ${dateTag(taskKeyDate(t))}${esc(t.title)}${etH?' '+etH:''}</div>`;
       TRACKS.forEach(([k,n])=>{if(!isOn(t,k))return;const i=t.ti[k]||{};const td=i.done||i.start;const ar=TT[k]?byType(TT[k]):[];const tt=lT(ar),th=lH(ar);
         if(t.s[k]!=='todo'||i.note||td||tt){
-          text+=`  ↳ ${LABEL[t.s[k]]} : ${dateTag(td)}${n}${i.note?' · '+i.note:''}${tt?' '+tt:''}\n`;
-          html+=`<div>&nbsp;&nbsp;↳ ${LABEL[t.s[k]]} : ${dateTag(td)}${esc(n)}${i.note?' · '+esc(i.note):''}${th?' '+th:''}</div>`;
+          text+=`  ⌙ ${LABEL[t.s[k]]} : ${dateTag(td)}${n}${i.note?' · '+i.note:''}${tt?' '+tt:''}\n`;
+          html+=`<div>&nbsp;&nbsp;⌙ ${LABEL[t.s[k]]} : ${dateTag(td)}${esc(n)}${i.note?' · '+esc(i.note):''}${th?' '+th:''}</div>`;
         }});
-      if(t.check)t.check.split(/\n+/).map(x=>x.trim()).filter(Boolean).forEach(line=>{text+=`  ↳ 확인 필요 : ${line}\n`;html+=`<div>&nbsp;&nbsp;↳ 확인 필요 : ${esc(line)}</div>`;});
+      if(t.check)t.check.split(/\n+/).map(x=>x.trim()).filter(Boolean).forEach(line=>{text+=`  ⌙ 확인 필요 : ${line}\n`;html+=`<div>&nbsp;&nbsp;⌙ 확인 필요 : ${esc(line)}</div>`;});
     });
     text+='\n';html+='<div><br></div>';
   });
