@@ -353,7 +353,7 @@ function taskLinksHtml(t){const links=t.links||[];let out='';LINK_TYPES.forEach(
 function cardHtml(t,isArch){
   let period='';
   if(isArch){const dur=days(t.createdAt,t.doneAt);period=`<div class="meta">${t.createdAt?fmtDate(t.createdAt):'?'} ~ ${t.doneAt?fmtDate(t.doneAt):'?'}${dur!=null?` · ${dur}일`:''} · 담당 ${doneTracks(t).join('·')||'-'}</div>`;}
-  let note;if(editNote===t.id){note=`<textarea class="noteedit" data-noteedit="${t.id}" placeholder="성과 메모">${esc(t.note||'')}</textarea>`;}else if(t.note){note=`<div class="note" data-noteclick="${t.id}" style="cursor:text">${esc(t.note)}</div>`;}else{note=`<div class="note empty-note" data-noteclick="${t.id}" style="cursor:text">메모 없음 — 클릭해서 추가</div>`;}
+  let note;if(editNote==t.id){note=`<textarea class="noteedit" data-noteedit="${t.id}" placeholder="성과 메모">${esc(t.note||'')}</textarea>`;}else if(t.note){note=`<div class="note" data-noteclick="${t.id}" style="cursor:text">${esc(t.note)}</div>`;}else{note=`<div class="note empty-note" data-noteclick="${t.id}" style="cursor:text">메모 없음 — 클릭해서 추가</div>`;}
   return `<div class="card ${isArch?'done-all':''}" data-id="${t.id}">
     <div class="chead"><div><div class="titleline"><span class="title">${esc(t.title)}</span><span class="chip">${esc(t.cat)}</span></div>${t.meta?`<div class="meta">${esc(t.meta)}</div>`:''}${period}</div>
     <div class="acts">${isArch?'':`<span class="iconbtn draghandle" data-drag="${t.id}" draggable="true" title="드래그로 순서 변경">⠿</span>`}<button class="iconbtn" data-dup="${t.id}" title="복제">⧉</button><button class="iconbtn" data-note="${t.id}" title="기간·특이사항·메모 수정">✎</button><button class="iconbtn del" data-del="${t.id}" title="삭제">✕</button></div></div>
