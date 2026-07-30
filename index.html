@@ -381,7 +381,7 @@ function cardHtml(t,isArch){
 }
 function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function fmtDate(iso){const d=new Date(iso);return isNaN(d)?iso:d.toLocaleDateString('ko-KR',{year:'2-digit',month:'2-digit',day:'2-digit'});}
-function fmtMD(iso){const d=new Date(iso);return isNaN(d)?iso:d.toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit'});}
+function fmtMD(iso){const d=new Date(iso);return isNaN(d)?iso:String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0');}
 function fmtTime(iso){const d=new Date(iso);return d.toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});}
 function bind(){
   document.querySelectorAll('.badge[data-track]').forEach(el=>el.onclick=()=>{
@@ -566,8 +566,8 @@ function buildWeekly(s,e){
     text+=`[${cat}]\n`;html+=`<div><b>[${esc(cat)}]</b></div>`;
     items.forEach(t=>{
       const lk=(t.links||[]);const byType=tp=>lk.filter(l=>(l.type||'기타')===tp);
-      const lT=arr=>arr.map(l=>l.label?l.label+' '+l.url:l.url).join(' ');
-      const lH=arr=>arr.map(l=>`<a href="${esc(l.url)}">${esc(l.label||l.url)}</a>`).join(' ');
+      const lT=arr=>arr.map(l=>l.label?l.label+' '+l.url:l.url).join(', ');
+      const lH=arr=>arr.map(l=>`<a href="${esc(l.url)}">${esc(l.label||l.url)}</a>`).join(', ');
       const et=lk.filter(l=>!['기획서','디자인','마크업','개발'].includes(l.type||'기타'));const etT=lT(et),etH=lH(et);
       text+=`- ${overall(t)} : ${dateTag(taskKeyDate(t))}${t.title}${etT?' '+etT:''}\n`;
       html+=`<div>- ${overall(t)} : ${dateTag(taskKeyDate(t))}${esc(t.title)}${etH?' '+etH:''}</div>`;
